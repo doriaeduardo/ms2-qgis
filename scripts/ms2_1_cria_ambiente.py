@@ -69,12 +69,45 @@ RAMPA_MDE = [
 ]
 
 # ---------------------------------------------------------------------------
-# ANADEM padrao (usado quando o MDE/MDT nao e' informado).
-# Editar aqui se os arquivos estiverem em outro lugar.
+# Configuracao de caminhos (ms2_config.json) - remove os caminhos fixos.
+# O arquivo fica na pasta de scripts do perfil do QGIS (ao lado deste .py).
+# Conteudo minimo:  { "raiz": "D:/GIS/Barragens" }
+# Chaves opcionais para sobrescrever caminhos individuais:
+#   mdt_dir, anadem, coeficientes, cadastro_csv, estilo_qml
 # ---------------------------------------------------------------------------
-MDT_DIR_PADRAO = r"C:\Users\Eduardo\Desktop\Barragens\MDTs"
+def _ms2_config():
+    import os, json
+    try:
+        from qgis.core import QgsApplication
+        base = os.path.join(QgsApplication.qgisSettingsDirPath(), 'processing', 'scripts')
+    except Exception:
+        base = os.path.dirname(os.path.abspath(__file__))
+    caminho = os.path.join(base, 'ms2_config.json')
+    if not os.path.exists(caminho):
+        raise RuntimeError(
+            'ms2_config.json nao encontrado em %s - crie-o com {"raiz": "<sua pasta>"}.' % base)
+    with open(caminho, encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _cfg(chave):
+    import os
+    c = _ms2_config()
+    raiz = c.get('raiz', '') or ''
+    padrao = {
+        'mdt_dir':      os.path.join(raiz, 'MDTs'),
+        'anadem':       os.path.join(raiz, 'MDTs', 'Anadem-BR-removepits.tif'),
+        'coeficientes': os.path.join(raiz, 'QGIS_MS2', 'coeficientes_ana2024.json'),
+        'cadastro_csv': os.path.join(raiz, 'barragens_ana_processado.csv'),
+        'estilo_qml':   os.path.join(raiz, 'QGIS_MS2', 'MDT_estilo_ANA.qml'),
+    }
+    return c.get(chave) or padrao.get(chave)
+
+
+# ANADEM padrao (usado quando o MDE/MDT nao e' informado) - via ms2_config.json.
+MDT_DIR_PADRAO = _cfg('mdt_dir')
 # ANADEM do Brasil inteiro (fonte preferencial - recorta-se por barragem).
-ANADEM_BR = os.path.join(MDT_DIR_PADRAO, "Anadem-BR-removepits.tif")
+ANADEM_BR = _cfg('anadem')
 # Fallback: mosaico VRT a partir de tiles, se o nacional nao existir.
 ANADEM_VRT_PADRAO = os.path.join(MDT_DIR_PADRAO, "anadem_mosaic.vrt")
 ANADEM_TILES_GLOB = "anadem_v1_*.tif"   # padrao dos tiles para montar o VRT
@@ -82,10 +115,10 @@ ANADEM_TILES_GLOB = "anadem_v1_*.tif"   # padrao dos tiles para montar o VRT
 BUFFER_MDE_KM_PADRAO = 30
 
 # Base do SNISB (busca automatica de volume/altura pelo codigo da barragem).
-BASE_SNISB_CSV = r"C:\Users\Eduardo\Desktop\Barragens\barragens_ana_processado.csv"
+BASE_SNISB_CSV = _cfg('cadastro_csv')
 
 # Estilo (QML) padrao da ANA para o MDE - rampa topografica oficial.
-ESTILO_MDE_QML = r"C:\Users\Eduardo\Desktop\Barragens\QGIS_MS2\MDT_estilo_ANA.qml"
+ESTILO_MDE_QML = _cfg('estilo_qml')
 
 
 class CriaAmbiente(QgsProcessingAlgorithm):

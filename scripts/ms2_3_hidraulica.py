@@ -30,7 +30,38 @@ from qgis.core import (
     edit,
 )
 
-COEF_JSON = r"C:\Users\Eduardo\Desktop\Barragens\QGIS_MS2\coeficientes_ana2024.json"
+# ---------------------------------------------------------------------------
+# Configuracao de caminhos (ms2_config.json) - remove os caminhos fixos.
+# O arquivo fica na pasta de scripts do perfil do QGIS (ao lado deste .py).
+# Conteudo minimo:  { "raiz": "D:/GIS/Barragens" }
+# Chave opcional para sobrescrever: coeficientes
+# ---------------------------------------------------------------------------
+def _ms2_config():
+    import os, json
+    try:
+        from qgis.core import QgsApplication
+        base = os.path.join(QgsApplication.qgisSettingsDirPath(), 'processing', 'scripts')
+    except Exception:
+        base = os.path.dirname(os.path.abspath(__file__))
+    caminho = os.path.join(base, 'ms2_config.json')
+    if not os.path.exists(caminho):
+        raise RuntimeError(
+            'ms2_config.json nao encontrado em %s - crie-o com {"raiz": "<sua pasta>"}.' % base)
+    with open(caminho, encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _cfg(chave):
+    import os
+    c = _ms2_config()
+    raiz = c.get('raiz', '') or ''
+    padrao = {
+        'coeficientes': os.path.join(raiz, 'QGIS_MS2', 'coeficientes_ana2024.json'),
+    }
+    return c.get(chave) or padrao.get(chave)
+
+
+COEF_JSON = _cfg('coeficientes')
 MANNING_N_PADRAO = 0.035
 SLOPE_MIN = 0.00001      # piso de declividade PADRAO (ANA: sem piso efetivo; a fenda ja garante slope>0)
 

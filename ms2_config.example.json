@@ -1,0 +1,4 @@
+{
+  "raiz": "D:/GIS/Barragens",
+  "_comentario": "Defina 'raiz' com a pasta onde estao MDTs/, QGIS_MS2/ e o CSV do SNISB. Opcional sobrescrever: mdt_dir, anadem, coeficientes, cadastro_csv, estilo_qml."
+}
