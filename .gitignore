@@ -1,0 +1,7 @@
+# dados pesados e saidas locais
+*.tif
+*.gpkg
+MDTs/
+_pylibs/
+__pycache__/
+ms2_config.json
