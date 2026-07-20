@@ -1,0 +1,36 @@
+MS 2.0 ANA — Pipeline QGIS (mancha de inundação e perigo por ruptura de barragem)
+Copyright (C) 2026  Eduardo Doria e colaboradores
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo sob os
+termos da Licença Pública Geral GNU (GNU General Public License) conforme
+publicada pela Free Software Foundation, na versão 3 da Licença ou (a seu
+critério) qualquer versão posterior.
+
+Este programa é distribuído na expectativa de que seja útil, mas SEM NENHUMA
+GARANTIA; sem mesmo a garantia implícita de COMERCIABILIDADE ou ADEQUAÇÃO A UMA
+FINALIDADE ESPECÍFICA. Consulte a Licença Pública Geral GNU para mais detalhes.
+
+Você deve ter recebido uma cópia da Licença Pública Geral GNU junto com este
+programa. Se não, veja <https://www.gnu.org/licenses/>.
+
+Justificativa da escolha: o QGIS (sobre o qual estes scripts rodam) é licenciado
+sob a GPL, e os scripts importam bibliotecas dele (qgis.core); a GPL-3.0 é,
+portanto, a licença compatível e mantém a ferramenta aberta.
+
+------------------------------------------------------------------------------
+TEXTO COMPLETO DA LICENÇA (a anexar)
+------------------------------------------------------------------------------
+O texto integral e verbatim da GNU GPL versão 3 deve acompanhar esta
+distribuição. Ele está disponível em:
+
+    https://www.gnu.org/licenses/gpl-3.0.txt
+
+Para completar: salve o conteúdo desse link e cole abaixo desta linha (ou
+adicione um arquivo gpl-3.0.txt na raiz do repositório). O aviso de copyright e
+a declaração de licença acima já estabelecem o projeto como GPL-3.0-or-later.
+
+NOTA INSTITUCIONAL: por ser trabalho ligado a órgão público, confirme com a
+ANA/jurídico quem deve constar como detentor do copyright (pessoa física ou a
+instituição) antes de tornar o repositório público.
