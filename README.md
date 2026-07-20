@@ -32,5 +32,5 @@ ou a instituição) deve ser confirmada com a ANA antes de publicação.*
 - [x] Script combinado 3-5
 - [x] Manual de instalação (`INSTALL.md`)
 - [x] Licença (GPL-3.0, texto completo incluído)
-- [ ] Dado de exemplo (uma barragem para teste)
+- [x] Dado de exemplo (`exemplos/23508_Fazenda_Dois_Coracoes/`)
 - [ ] Teste ponta a ponta num perfil de teste do QGIS
