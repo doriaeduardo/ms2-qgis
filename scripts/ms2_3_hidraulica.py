@@ -53,10 +53,15 @@ def _ms2_config():
 
 def _cfg(chave):
     import os
+    try:
+        from qgis.core import QgsApplication
+        base = os.path.join(QgsApplication.qgisSettingsDirPath(), 'processing', 'scripts')
+    except Exception:
+        base = os.path.dirname(os.path.abspath(__file__))
     c = _ms2_config()
-    raiz = c.get('raiz', '') or ''
     padrao = {
-        'coeficientes': os.path.join(raiz, 'QGIS_MS2', 'coeficientes_ana2024.json'),
+        # coeficientes acompanha os scripts (mesma pasta); pode ser sobrescrito no config
+        'coeficientes': os.path.join(base, 'coeficientes_ana2024.json'),
     }
     return c.get(chave) or padrao.get(chave)
 
