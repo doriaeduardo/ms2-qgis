@@ -31,7 +31,6 @@ ou a instituição) deve ser confirmada com a ANA antes de publicação.*
 - [x] Config (`ms2_config.json`) para remover caminhos fixos
 - [x] Script combinado 3-5
 - [x] Manual de instalação (`INSTALL.md`)
-- [x] Licença (GPL-3.0)
-- [ ] Anexar o texto completo da GPL-3.0 ao `LICENSE`
+- [x] Licença (GPL-3.0, texto completo incluído)
 - [ ] Dado de exemplo (uma barragem para teste)
 - [ ] Teste ponta a ponta num perfil de teste do QGIS
