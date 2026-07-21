@@ -5,3 +5,6 @@ MDTs/
 _pylibs/
 __pycache__/
 ms2_config.json
+
+# pacotes/build
+*.zip
