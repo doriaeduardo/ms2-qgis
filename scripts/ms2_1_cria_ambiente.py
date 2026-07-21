@@ -75,17 +75,23 @@ RAMPA_MDE = [
 # Chaves opcionais para sobrescrever caminhos individuais:
 #   mdt_dir, anadem, coeficientes, cadastro_csv, estilo_qml
 # ---------------------------------------------------------------------------
-def _ms2_config():
-    import os, json
+def _ms2_config_path():
+    import os
     try:
         from qgis.core import QgsApplication
         base = os.path.join(QgsApplication.qgisSettingsDirPath(), 'processing', 'scripts')
     except Exception:
         base = os.path.dirname(os.path.abspath(__file__))
-    caminho = os.path.join(base, 'ms2_config.json')
+    return os.path.join(base, 'ms2_config.json')
+
+
+def _ms2_config():
+    # Tolerante: se o arquivo nao existe, retorna {} (nao quebra o carregamento
+    # do script no QGIS). A ausencia e' avisada com mensagem clara so na execucao.
+    import os, json
+    caminho = _ms2_config_path()
     if not os.path.exists(caminho):
-        raise RuntimeError(
-            'ms2_config.json nao encontrado em %s - crie-o com {"raiz": "<sua pasta>"}.' % base)
+        return {}
     with open(caminho, encoding='utf-8') as f:
         return json.load(f)
 
@@ -586,6 +592,13 @@ class CriaAmbiente(QgsProcessingAlgorithm):
 
     # -- execucao ------------------------------------------------------------
     def processAlgorithm(self, parameters, context, feedback):
+        # Config obrigatoria: se ausente, avisa aqui (na execucao) com mensagem clara,
+        # em vez de quebrar o carregamento do script no arranque do QGIS.
+        if not _ms2_config():
+            raise QgsProcessingException(
+                'ms2_config.json nao encontrado em %s.\n'
+                'Crie-o com {"raiz": "<sua pasta de dados>"} (veja INSTALL.md).'
+                % _ms2_config_path())
         self._zoom = None   # (pin_xy_utm, crs_utm) - definido se houver coordenada
         pasta = self.parameterAsFile(parameters, self.PASTA, context)
         id_bar = self.parameterAsString(parameters, self.ID_BAR, context).strip()

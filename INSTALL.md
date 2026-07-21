@@ -77,8 +77,10 @@ D:/GIS/Barragens/            <- "raiz" do config
   barragens_ana_processado.csv   (opcional)
 ```
 
-Se o CSV do SNISB não estiver presente, tudo funciona igual — basta informar
-volume e altura manualmente ao rodar o Script 1.
+*(Opcional)* Para a busca automática de volume/altura pelo código SNISB, copie
+`dados/barragens_ana_processado.csv` (incluído no pacote) para a pasta `raiz`.
+Sem ele, tudo funciona igual — basta informar volume e altura manualmente no
+Script 1.
 
 ---
 
@@ -121,8 +123,9 @@ velocidade, h×v, perigo) e no `MS2.gpkg` (mancha e perigo vetoriais).
 
 ## 6. Problemas comuns
 
-- **"ms2_config.json não encontrado"** → você ainda não criou o arquivo do
-  passo 3 na pasta `processing\scripts\`.
+- **"ms2_config.json não encontrado"** (aparece **ao rodar** o Script 1) → crie
+  o arquivo do passo 3 na pasta `processing\scripts\`. Os algoritmos carregam
+  normalmente mesmo sem ele; o Script 1 só precisa dele para localizar o ANADEM.
 - **"Nenhuma fonte ANADEM encontrada"** → confira se o
   `Anadem-BR-removepits.tif` está em `raiz/MDTs/` (ou ajuste `anadem` no config).
 - **Shapefile do técnico sem `.shx`** → o QGIS/GDAL recupera automaticamente

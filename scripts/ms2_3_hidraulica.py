@@ -37,6 +37,9 @@ from qgis.core import (
 # Chave opcional para sobrescrever: coeficientes
 # ---------------------------------------------------------------------------
 def _ms2_config():
+    # Tolerante: se o arquivo nao existe, retorna {} (nao quebra o carregamento).
+    # O coeficientes_ana2024.json e' achado ao lado dos scripts, entao o Script 3
+    # funciona mesmo sem ms2_config.json.
     import os, json
     try:
         from qgis.core import QgsApplication
@@ -45,8 +48,7 @@ def _ms2_config():
         base = os.path.dirname(os.path.abspath(__file__))
     caminho = os.path.join(base, 'ms2_config.json')
     if not os.path.exists(caminho):
-        raise RuntimeError(
-            'ms2_config.json nao encontrado em %s - crie-o com {"raiz": "<sua pasta>"}.' % base)
+        return {}
     with open(caminho, encoding='utf-8') as f:
         return json.load(f)
 
