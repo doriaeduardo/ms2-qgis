@@ -40,7 +40,6 @@ Ambos em **EPSG 31984** (SIRGAS 2000 / UTM 24S).
 - Se você chegar perto desses números, a instalação está correta.
 
 ---
-**Procedência dos dados:** rio e seções produzidos por técnico da ANA (usados
-aqui apenas para teste/validação). Antes de tornar o repositório público,
-confirme com a ANA a permissão para redistribuir estes arquivos de dados — o
-código é GPL, mas os dados são de terceiros.
+**Procedência dos dados:** rio e seções produzidos por técnico da ANA,
+redistribuídos aqui com autorização da ANA, para teste e validação da
+instalação. O código é GPL; estes dados não fazem parte da licença do código.

@@ -12,5 +12,5 @@ Ou aponte o caminho no config: `{ "raiz": "...", "cadastro_csv": "..." }`.
 E' **opcional**: sem ele, basta informar volume e altura manualmente no Script 1.
 
 ---
-**Procedencia:** derivado do cadastro publico do SNISB/ANA. Antes de publicar o
-repositorio, confirme com a ANA a permissao de redistribuir estes dados.
+**Procedencia:** derivado do cadastro publico do SNISB/ANA, redistribuido aqui
+com autorizacao da ANA.
