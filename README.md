@@ -10,6 +10,11 @@ Baixe o `MS2_ferramenta_vX.Y.zip` e siga o **[INSTALL.md](INSTALL.md)**.
 Requer apenas **QGIS 3.34+** e o MDT **ANADEM** — nenhuma biblioteca Python
 adicional (GDAL e numpy já vêm no QGIS).
 
+O ANADEM (versão "Remove Pits", `removepits.tif`, 67 GB) é baixado à parte, pelo
+link liberado pela ANA:
+https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif
+— use um gerenciador de downloads que retome após quedas (ex.: Free Download Manager).
+
 ## Validação
 
 O pipeline foi comparado com os produtos oficiais de técnicos da ANA em

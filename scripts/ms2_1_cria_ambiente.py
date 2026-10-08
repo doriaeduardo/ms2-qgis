@@ -102,12 +102,24 @@ def _cfg(chave):
     raiz = c.get('raiz', '') or ''
     padrao = {
         'mdt_dir':      os.path.join(raiz, 'MDTs'),
-        'anadem':       os.path.join(raiz, 'MDTs', 'Anadem-BR-removepits.tif'),
+        'anadem':       _anadem_padrao(raiz),
         'coeficientes': os.path.join(raiz, 'QGIS_MS2', 'coeficientes_ana2024.json'),
         'cadastro_csv': os.path.join(raiz, 'barragens_ana_processado.csv'),
         'estilo_qml':   _estilo_qml_padrao(raiz),
     }
     return c.get(chave) or padrao.get(chave)
+
+
+def _anadem_padrao(raiz):
+    # removepits.tif = nome do download oficial da ANA (metadados.snirh.gov.br);
+    # Anadem-BR-removepits.tif = nome usado nas instalacoes anteriores.
+    import os
+    candidatos = [os.path.join(raiz, 'MDTs', n)
+                  for n in ('removepits.tif', 'Anadem-BR-removepits.tif')]
+    for p in candidatos:
+        if os.path.exists(p):
+            return p
+    return candidatos[0]
 
 
 def _estilo_qml_padrao(raiz):
@@ -421,6 +433,7 @@ class CriaAmbiente(QgsProcessingAlgorithm):
     def _fonte_anadem(feedback):
         """Retorna o caminho da fonte ANADEM (nacional ou VRT de tiles)."""
         if os.path.exists(ANADEM_BR):
+            feedback.pushInfo('Fonte ANADEM: %s' % ANADEM_BR)
             return ANADEM_BR
         # fallback: mosaico VRT dos tiles
         if not os.path.exists(ANADEM_VRT_PADRAO):
@@ -452,7 +465,8 @@ class CriaAmbiente(QgsProcessingAlgorithm):
         # 2) fonte ANADEM
         fonte = self._fonte_anadem(feedback)
         if not fonte:
-            feedback.pushWarning('Nenhuma fonte ANADEM encontrada em %s.' % MDT_DIR_PADRAO)
+            feedback.pushWarning('Nenhuma fonte ANADEM encontrada em %s '
+                                 '(esperado: removepits.tif).' % MDT_DIR_PADRAO)
             return '', 'ausente'
 
         # sem coordenada -> nao da pra recortar; usa a fonte direta

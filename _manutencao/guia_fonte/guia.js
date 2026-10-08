@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const {
-  Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, BorderStyle, ShadingType,
+  Document, Packer, Paragraph, TextRun, ImageRun, ExternalHyperlink, AlignmentType, BorderStyle, ShadingType,
 } = require('docx');
 
 const FIG = path.join(__dirname, 'fig');
@@ -11,8 +11,10 @@ const AZUL = '1F4E79', CINZA = '595959';
 
 // **negrito** dentro do texto
 function runs(texto, extra = {}) {
-  return texto.split(/(\*\*[^*]+\*\*)/).filter(Boolean).map(t =>
+  // URLs viram links clicaveis no PDF
+  return texto.split(/(\*\*[^*]+\*\*|https?:\/\/\S+)/).filter(Boolean).map(t =>
     t.startsWith('**') ? new TextRun({ text: t.slice(2, -2), bold: true, font: 'Calibri', size: 22, ...extra })
+    : /^https?:/.test(t) ? new ExternalHyperlink({ link: t, children: [new TextRun({ text: t, style: 'Hyperlink', color: '0563C1', underline: {}, font: 'Calibri', size: 22 })] })
                        : new TextRun({ text: t, font: 'Calibri', size: 22, ...extra }));
 }
 const P = (t, o = {}) => new Paragraph({ spacing: { after: o.after ?? 80 }, indent: o.ind ? { left: o.ind } : undefined, children: runs(t) });
@@ -39,7 +41,7 @@ const c = [];
 c.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: 'Como gerar a mancha de inundação por ruptura de barragem', bold: true, size: 40, color: AZUL, font: 'Calibri' })] }));
 c.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: 'Pipeline MS 2.0 da ANA no QGIS — passo a passo com a barragem de exemplo (23508)', size: 24, color: CINZA, font: 'Calibri' })] }));
 
-c.push(P('**Você vai precisar de:** QGIS 3.34 ou mais novo, o terreno ANADEM (arquivo Anadem-BR-removepits.tif) e o pacote MS2_ferramenta (arquivo .zip).'));
+c.push(P('**Você vai precisar de:** QGIS 3.34 ou mais novo, o terreno ANADEM (arquivo removepits.tif, 67 GB — o link de download está no passo 5) e o pacote MS2_ferramenta (arquivo .zip).'));
 c.push(NOTA('**O ponto que mais trava a instalação é colocar cada arquivo na pasta certa.** São três pastas diferentes: (1) a **pasta de scripts do QGIS**, que recebe os scripts e o ms2_config.json; (2) a **pasta de dados**, que chamamos de **raiz** (neste guia, Documentos\\Barragens), com o ANADEM e o cadastro SNISB; e (3) a **Pasta de Trabalho**, onde ficam os resultados de cada barragem. O ms2_config.json é o arquivo que diz ao QGIS onde está a pasta de dados.'));
 
 // ---------------- Parte 1
@@ -53,9 +55,9 @@ c.push(PK('3. O Explorador de Arquivos abre na pasta do perfil, que fica em C:\\
 c.push(IMG('f03a_pasta_perfil.jpg', 6.6)); c.push(CAP('A pasta do perfil, com o caminho completo na barra de endereço. Entre em processing → scripts'));
 c.push(P('4. Copie para dentro dessa pasta scripts **todos os 8 arquivos** da pasta scripts do pacote (passo 1): selecione tudo (Ctrl+A), copie (Ctrl+C) e cole (Ctrl+V).'));
 
-c.push(PK('5. Crie a **pasta de dados**: em **Documentos**, crie a pasta **Barragens** e, dentro dela, a pasta **MDTs**. Coloque o ANADEM dentro de MDTs, com o nome exato **Anadem-BR-removepits.tif**. Copie também o arquivo **barragens_ana_processado.csv** (pasta dados do pacote) para dentro de **Barragens** — não dentro de MDTs. É ele que preenche sozinho o volume, a altura e a coordenada a partir do código da barragem.'));
+c.push(PK('5. Crie a **pasta de dados**: em **Documentos**, crie a pasta **Barragens** e, dentro dela, a pasta **MDTs**. Baixe o ANADEM pelo link liberado pela ANA — https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif — e coloque o arquivo **removepits.tif** dentro de MDTs, **sem mudar o nome**. São 67 GB: use um gerenciador de downloads que retome o download se a conexão cair (por exemplo, o Free Download Manager, gratuito). Copie também o arquivo **barragens_ana_processado.csv** (pasta dados do pacote) para dentro de **Barragens** — não dentro de MDTs. É ele que preenche sozinho o volume, a altura e a coordenada a partir do código da barragem.'));
 c.push(IMG('f04a_pasta_barragens.jpg', 6.6)); c.push(CAP('Documentos\\Barragens: a pasta MDTs e o barragens_ana_processado.csv, lado a lado'));
-c.push(IMG('f04b_pasta_mdts.jpg', 6.6)); c.push(CAP('Documentos\\Barragens\\MDTs: o ANADEM com o nome Anadem-BR-removepits.tif'));
+c.push(IMG('f04b_pasta_mdts.jpg', 6.6)); c.push(CAP('Documentos\\Barragens\\MDTs: o ANADEM (removepits.tif)'));
 
 c.push(P('6. Descubra o caminho da pasta Barragens: com ela aberta no Explorador, clique na parte vazia da barra de endereço — o caminho aparece em texto (por exemplo, C:\\Users\\<seu usuário>\\Documents\\Barragens). Copie-o (Ctrl+C). Repare que "Documentos" aparece como **Documents** no caminho real.'));
 c.push(PK('7. Abra o **Bloco de Notas** e escreva a linha abaixo, colando o seu caminho e **trocando todas as barras \\ por /**:'));
@@ -88,7 +90,7 @@ c.push(IMG('f09a_script2_param.jpg', 4.6)); c.push(CAP('2 - Rio e Seções'));
 c.push(IMG('f09b_rio_secoes.jpg', 6.6)); c.push(CAP('Rio (linha ao centro) e as 55 seções transversais sobre o terreno'));
 c.push(PK('16. Abra **MS 2.0 ANA → 3-5 - Hidráulica + Mancha + Perigo (tudo)**. Preencha a Pasta de Trabalho e o ID. Deixe o Coeficiente de Manning em **0,035** e o Método de decaimento em **ANA 2014 (MS1)**. Clique em Executar.'));
 c.push(IMG('f10_script35_param.jpg', 4.6)); c.push(CAP('3-5: Manning 0,035 e decaimento ANA 2014 (MS1)'));
-c.push(PK('17. Pronto! Aparecem a mancha de inundação e o perigo hidrodinâmico por faixas. Para a 23508, a mancha fica em torno de **118–122 ha** — se chegou perto disso, a instalação está correta.'));
+c.push(PK('17. Pronto! Aparecem a mancha de inundação e o perigo hidrodinâmico por faixas. Para a 23508, a mancha fica em torno de **120–127 ha** (o valor exato varia um pouco com a versão do ANADEM) — se chegou perto disso, a instalação está correta.'));
 c.push(IMG('f11_resultado.jpg', 6.6)); c.push(CAP('Resultado final: perigo hidrodinâmico por faixas e mancha (~122 ha)'));
 
 // ---------------- Parte 3
@@ -104,14 +106,14 @@ c.push(SUB('a) Clique em 23508_SecTrans, ligue a edição e use Adicionar Linha.
 c.push(SUB('b) Regras: toda seção tem que cruzar o rio (as que não cruzam são ignoradas); as seções não podem se cruzar; cada uma deve ir além da área que pode inundar, até terreno mais alto dos dois lados; comece perto da barragem e vá até o fim do rio; ponha mais seções onde o vale estreita, alarga ou faz curva.'));
 c.push(SUB('c) Salve a edição e desligue o lápis.'));
 c.push(P('21. Rode o 2 - Rio e Seções e o 3-5, como nos passos 15 e 16, com a nova Pasta de Trabalho.'));
-c.push(P('22. Compare com a Parte 2: arraste os arquivos B23508_Rio e B23508_Secoes_Transversais (pasta exemplos) por cima do seu desenho — compare com a figura do passo 15 — e veja no log a linha "Area inundada". O resultado não precisa ser igual aos 118–122 ha da Parte 2: a diferença vem do desenho. Se ficar muito diferente, procure onde o seu desenho se afasta do técnico (seções curtas que não chegam ao terreno alto, rio fora do fundo do vale, seções muito espaçadas).'));
+c.push(P('22. Compare com a Parte 2: arraste os arquivos B23508_Rio e B23508_Secoes_Transversais (pasta exemplos) por cima do seu desenho — compare com a figura do passo 15 — e veja no log a linha "Area inundada". O resultado não precisa ser igual aos 120–127 ha da Parte 2: a diferença vem do desenho. Se ficar muito diferente, procure onde o seu desenho se afasta do técnico (seções curtas que não chegam ao terreno alto, rio fora do fundo do vale, seções muito espaçadas).'));
 c.push(P('Numa barragem real, o processo é este: Parte 2 com o rio e as seções desenhados como na Parte 3 — só que sem o desenho do técnico para conferir.'));
 
 // ---------------- Problemas
 c.push(H('Se algo der errado'));
 c.push(P('• **Os algoritmos não aparecem na Caixa de Ferramentas** → os arquivos não estão na pasta scripts do perfil certo. Refaça os passos 2 a 4 (sempre pelo menu Abrir Pasta de Perfil Ativo) e reinicie o QGIS.'));
 c.push(P('• **Volume, altura e coordenada não são preenchidos (não aparece a linha SNISB no log)** → o barragens_ana_processado.csv não está dentro da pasta raiz (Barragens), ou o caminho no ms2_config.json está errado. Confira os passos 5 a 9.'));
-c.push(P('• **"Nenhuma fonte ANADEM encontrada" ou "MDE não pode ser carregado"** → o ANADEM não está em Barragens\\MDTs ou não se chama exatamente Anadem-BR-removepits.tif (confira a extensão .tif).'));
+c.push(P('• **"Nenhuma fonte ANADEM encontrada" ou "MDE não pode ser carregado"** → o ANADEM não está em Barragens\\MDTs ou não se chama exatamente removepits.tif (confira a extensão .tif; se o download não terminou, o arquivo fica incompleto — baixe de novo).'));
 c.push(P('• **O Script 1 dá erro logo no início, citando o ms2_config.json ou JSON** → o arquivo tem barra invertida simples (\\) — use / — ou ficou com o nome ms2_config.json.txt.'));
 
 const doc = new Document({

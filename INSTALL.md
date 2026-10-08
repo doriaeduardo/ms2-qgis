@@ -11,8 +11,14 @@ Não é preciso instalar Python nem bibliotecas: tudo o que os scripts usam
 ## 1. Requisitos
 
 - **QGIS LTR** — versão 3.34 ou superior (testado no 3.44). Grátis: https://qgis.org
-- **ANADEM** — o Modelo Digital de Elevação nacional de 30 m, arquivo
-  `Anadem-BR-removepits.tif` (fonte de terreno padrão; arquivo grande).
+- **ANADEM** (versão hidrologicamente consistente, "Remove Pits") — Modelo
+  Digital de Elevação de 30 m, arquivo `removepits.tif` (**67 GB**). Download
+  liberado pela ANA:
+  https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif
+  Pelo tamanho, use um gerenciador de downloads que retome após quedas de
+  conexão (por exemplo, o Free Download Manager, gratuito). O arquivo cobre a
+  América do Sul e vem na projeção Albers (EPSG:10857); não é preciso
+  reprojetar — o Script 1 recorta e reprojeta só a área de cada barragem.
 - *(Opcional)* `barragens_ana_processado.csv` — cadastro SNISB, para buscar
   volume/altura automaticamente pelo código da barragem.
 
@@ -66,7 +72,7 @@ Na **mesma pasta** `processing\scripts\`, crie um arquivo chamado
 ```json
 {
   "raiz": "D:/GIS/Barragens",
-  "anadem": "//servidor/GIS/Anadem-BR-removepits.tif"
+  "anadem": "//servidor/GIS/removepits.tif"
 }
 ```
 
@@ -86,7 +92,7 @@ ANADEM nela. Estrutura mínima:
 ```
 D:/GIS/Barragens/            <- "raiz" do config
   MDTs/
-    Anadem-BR-removepits.tif
+    removepits.tif
   barragens_ana_processado.csv   (opcional)
 ```
 
@@ -146,7 +152,8 @@ velocidade, h×v, perigo) e no `MS2.gpkg` (mancha e perigo vetoriais).
   o arquivo do passo 3 na pasta `processing\scripts\`. Os algoritmos carregam
   normalmente mesmo sem ele; o Script 1 só precisa dele para localizar o ANADEM.
 - **"Nenhuma fonte ANADEM encontrada"** → confira se o
-  `Anadem-BR-removepits.tif` está em `raiz/MDTs/` (ou ajuste `anadem` no config).
+  `removepits.tif` está em `raiz/MDTs/` (ou ajuste `anadem` no config). O nome
+  antigo `Anadem-BR-removepits.tif` também é aceito.
 - **Shapefile do técnico sem `.shx`** → o QGIS/GDAL recupera automaticamente
   ativando `SHAPE_RESTORE_SHX=YES` (Configurações do GDAL) ou reexportando o
   shapefile completo.
@@ -156,7 +163,7 @@ velocidade, h×v, perigo) e no `MS2.gpkg` (mancha e perigo vetoriais).
   uma chave `anadem` (ou `mdt_dir`) apontando para um caminho inválido: arquivo
   **sem a extensão `.tif`**, ou uma **pasta** em vez do arquivo. Corrija o
   `anadem` para o caminho completo do `.tif` (com extensão), ou **remova** a
-  chave para usar o padrão `raiz\MDTs\Anadem-BR-removepits.tif`. Vale ligar as
+  chave para usar o padrão `raiz\MDTs\removepits.tif`. Vale ligar as
   extensões no Explorer para conferir o nome real do arquivo.
 - **Volume/coordenada não foram preenchidos sozinhos** → no log **não apareceu**
   a linha `SNISB: <nome> | vol=... | lat=...`. Isso quer dizer que o CSV não foi

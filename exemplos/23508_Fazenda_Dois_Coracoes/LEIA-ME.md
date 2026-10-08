@@ -32,7 +32,9 @@ Ambos em **EPSG 31984** (SIRGAS 2000 / UTM 24S).
 4. **Script 3-5 (tudo)** ou os Scripts 3, 4 e 5: use n = 0,035 e método Qx = MS1.
 
 ## Resultado esperado
-- Mancha de inundação ≈ **118–122 ha**.
+- Mancha de inundação ≈ **120–127 ha** (122 ha com o ANADEM usado na validação;
+  126 ha com o `removepits.tif` do link oficial — a diferença é uma borda de
+  menos de 1 pixel).
 - Comparada com o produto oficial do técnico da ANA para esta barragem:
   **IoU ≈ 79%**, **IoU±1px ≈ 96%**, extensão do perigo ≈ 81%.
 - Se você chegar perto desses números, a instalação está correta.
