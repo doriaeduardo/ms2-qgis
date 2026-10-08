@@ -15,6 +15,7 @@ import os
 import csv
 import json
 import math
+import datetime
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
@@ -440,6 +441,19 @@ class Hidraulica(QgsProcessingAlgorithm):
         cfg['metodo_qx'] = 'ANA 2014 (MS1)' if metodo_qx == 1 else 'ANA 2024/2023'
         cfg['resultados_csv'] = p_result
         cfg['cota_coroamento_usada'] = round(ncor, 3)
+        # carimbo da rodada: id unico gerado AQUI (inicio da simulacao) e
+        # propagado para a mancha (Script 4) e os rasters de perigo (Script 5).
+        # Permite ao gerador da classificacao verificar que os 3 arquivos vieram
+        # da MESMA execucao, em vez de deduzir pela geometria.
+        _rid = '%s-%sZ-%s' % (id_bar,
+                              datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%S'),
+                              os.urandom(2).hex())
+        cfg['rodada'] = {
+            'id': _rid,
+            'gerado_em': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'versao_pipeline': 'ms2-qgis',
+        }
+        feedback.pushInfo('Carimbo da rodada: %s' % _rid)
         json.dump(cfg, open(cfg_path, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
 
         feedback.pushInfo('\n***** FIM - Hidraulica concluida para "%s" (%d secoes, %d aviso(s)) *****'

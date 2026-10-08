@@ -178,7 +178,11 @@ class Manchas(QgsProcessingAlgorithm):
             mancha_geom = mancha_geom.smooth(suavizar, 0.25)
             feedback.pushInfo('Mancha suavizada (%d iteracoes).' % suavizar)
         mancha_name = id_bar + '_Mancha'
-        self._gravar_poligono(gpkg, mancha_name, crs_id, mancha_geom, feedback)
+        rid = (cfg.get('rodada') or {}).get('id')
+        self._gravar_poligono(gpkg, mancha_name, crs_id, mancha_geom, rid, feedback)
+        # carimba os rasters desta rodada (metadado GDAL, nao altera pixel)
+        self._tag_rodada(wse_tif, rid)
+        self._tag_rodada(prof_tif, rid)
 
         area_ha = mancha_geom.area() / 10000.0
         feedback.pushInfo('Area inundada: %.1f ha (%.3f km2)' % (area_ha, area_ha / 100.0))
@@ -193,6 +197,20 @@ class Manchas(QgsProcessingAlgorithm):
         self._add = [(prof_tif, id_bar + '_profundidade', 'raster'),
                      ('%s|layername=%s' % (gpkg, mancha_name), mancha_name, 'vetor')]
         return {self.OUT_MANCHA: '%s|layername=%s' % (gpkg, mancha_name)}
+
+    @staticmethod
+    def _tag_rodada(path, rodada_id):
+        """Grava o rodada_id como metadado GDAL do raster (nao altera pixel/CRS)."""
+        if not rodada_id or not path or not os.path.exists(path):
+            return
+        try:
+            from osgeo import gdal
+            ds = gdal.Open(path, gdal.GA_Update)
+            if ds is not None:
+                ds.SetMetadataItem('rodada_id', rodada_id)
+                ds = None
+        except Exception:
+            pass
 
     @staticmethod
     def _calc_profundidade(mde_path, wse_path, out_path, feedback):
@@ -242,7 +260,7 @@ class Manchas(QgsProcessingAlgorithm):
                           % (npix, float(prof[mask].max()) if npix else 0.0))
 
     @staticmethod
-    def _gravar_poligono(gpkg, layer_name, crs_id, geom, feedback):
+    def _gravar_poligono(gpkg, layer_name, crs_id, geom, rodada_id, feedback):
         """Grava a geometria da mancha como camada de poligono no GeoPackage (via ogr)."""
         from osgeo import ogr, osr
         epsg = int(crs_id.split(':')[1])
@@ -253,8 +271,11 @@ class Manchas(QgsProcessingAlgorithm):
         lyr = ds.CreateLayer(layer_name, srs, ogr.wkbMultiPolygon,
                              options=['OVERWRITE=YES', 'GEOMETRY_NAME=geom'])
         lyr.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
+        lyr.CreateField(ogr.FieldDefn('rodada_id', ogr.OFTString))
         feat = ogr.Feature(lyr.GetLayerDefn())
         feat.SetField('id', 1)
+        if rodada_id:
+            feat.SetField('rodada_id', rodada_id)
         feat.SetGeometry(ogr.CreateGeometryFromWkt(geom.asWkt()))
         lyr.CreateFeature(feat)
         feat = None

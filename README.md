@@ -29,6 +29,7 @@ A versão exata que produziu essa validação está marcada na tag
 - `scripts/ms2_1_cria_ambiente.py` … `ms2_5_perigo.py` — o pipeline (Scripts 1 a 5)
 - `scripts/ms2_35_hidraulica_mancha_perigo.py` — atalho que roda 3+4+5 de uma vez
 - `scripts/coeficientes_ana2024.json` — tabelas de decaimento de vazão
+- `scripts/MDT_estilo_ANA.qml` — estilo (cores) do terreno no padrão da ANA
 - `ms2_config.example.json` — modelo de configuração de caminhos
 - `exemplos/23508_Fazenda_Dois_Coracoes/` — barragem de exemplo para testar a instalação
 - `dados/barragens_ana_processado.csv` — cadastro SNISB (opcional, busca automática de volume/altura)

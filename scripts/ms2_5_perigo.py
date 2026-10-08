@@ -15,6 +15,9 @@
 
 import os
 import json
+import shutil
+import tempfile
+import zipfile
 
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtCore import QCoreApplication
@@ -23,11 +26,15 @@ from qgis.core import (
     QgsProcessingParameterFile,
     QgsProcessingParameterString,
     QgsProcessingParameterNumber,
+    QgsProcessingParameterBoolean,
     QgsProcessingOutputString,
     QgsProcessingException,
     QgsVectorLayer,
+    QgsVectorFileWriter,
     QgsRasterLayer,
     QgsGeometry,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsColorRampShader,
     QgsRasterShader,
     QgsSingleBandPseudoColorRenderer,
@@ -52,6 +59,7 @@ class Perigo(QgsProcessingAlgorithm):
     ID_BAR = 'ID_BAR'
     FECHAMENTO = 'FECHAMENTO'
     SUAVIZAR = 'SUAVIZAR'
+    ENTREGAR = 'ENTREGAR'
     OUT_PERIGO = 'OUT_PERIGO'
 
     def tr(self, s):
@@ -95,6 +103,11 @@ class Perigo(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.SUAVIZAR, self.tr('Suavizacao do contorno do vetor (0 = nenhuma)'),
             type=QgsProcessingParameterNumber.Integer, defaultValue=2, minValue=0, maxValue=10))
+        self.addParameter(QgsProcessingParameterBoolean(
+            self.ENTREGAR,
+            self.tr('Entregar para a classificacao (exporta B<cod>_Mancha_MS2.kmz, '
+                    'B<cod>_MS2.json e B<cod>_hv.tif para a pasta do projeto QGIS)'),
+            defaultValue=True))
         self.addOutput(QgsProcessingOutputString(self.OUT_PERIGO, self.tr('Camada de perigo')))
 
     # -- shader das faixas ANA (raster de h x v) ----------------------------
@@ -115,6 +128,7 @@ class Perigo(QgsProcessingAlgorithm):
         id_bar = self.parameterAsString(parameters, self.ID_BAR, context).strip()
         fechamento = self.parameterAsDouble(parameters, self.FECHAMENTO, context)
         suavizar = self.parameterAsInt(parameters, self.SUAVIZAR, context)
+        entregar = self.parameterAsBool(parameters, self.ENTREGAR, context)
 
         pb = os.path.join(pasta, id_bar)
         cfg_path = os.path.join(pb, id_bar + '_MS2.json')
@@ -164,6 +178,10 @@ class Perigo(QgsProcessingAlgorithm):
         perigo_tif = os.path.join(pb, id_bar + '_perigo.tif')
         stats, hvmax = self._calc_perigo(prof_path, velo_tif, hv_tif, perigo_tif,
                                          gpkg, mancha_name, feedback)
+        # carimbo da rodada nos rasters (metadado GDAL, nao altera pixel)
+        rid = (cfg.get('rodada') or {}).get('id')
+        for _p in (hv_tif, perigo_tif, velo_tif):
+            self._tag_rodada(_p, rid)
 
         # 3) vetoriza o perigo (poligonos por classe 1..5)
         feedback.pushInfo('Vetorizando o perigo...')
@@ -183,6 +201,13 @@ class Perigo(QgsProcessingAlgorithm):
         cfg['hv_max'] = round(hvmax, 2)
         cfg['perigo_areas_ha'] = stats
         json.dump(cfg, open(cfg_path, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+
+        # entrega automatica para o gerador da classificacao: os 3 arquivos da
+        # MESMA rodada (mancha, MS2.json, hv.tif), com os nomes que o gerador
+        # reconhece, na pasta do projeto QGIS (a B<cod>_<Nome> que ele varre).
+        if entregar:
+            self._entregar_classificacao(gpkg, mancha_name, cfg_path, hv_tif,
+                                         id_bar, feedback)
 
         feedback.pushInfo('Areas por faixa (ha): ' + ' | '.join(
             '%s=%.1f' % (FAIXAS_ANA[i][3], stats.get(str(i + 1), 0)) for i in range(5)))
@@ -312,6 +337,155 @@ class Perigo(QgsProcessingAlgorithm):
             lyr.CreateFeature(feat); feat = None
         ds = None
         feedback.pushInfo('Camada de perigo gravada: %s (5 faixas ANA, com acabamento)' % layer_name)
+
+    @staticmethod
+    def _tag_rodada(path, rodada_id):
+        """Grava o rodada_id como metadado GDAL do raster (nao altera pixel/CRS)."""
+        if not rodada_id or not path or not os.path.exists(path):
+            return
+        try:
+            from osgeo import gdal
+            ds = gdal.Open(path, gdal.GA_Update)
+            if ds is not None:
+                ds.SetMetadataItem('rodada_id', rodada_id)
+                ds = None
+        except Exception:
+            pass
+
+    @staticmethod
+    def _carregar_helper_export(gpkg):
+        """Importa o exportar_para_barragem.py que fica ao lado do MS2.gpkg, para
+        reusar `anotacoes_no_kmz` e `atualizar_manifesto` (fonte unica de verdade).
+        Retorna o modulo, ou None se nao achar/importar."""
+        try:
+            import importlib.util
+            p = os.path.join(os.path.dirname(gpkg), 'exportar_para_barragem.py')
+            if not os.path.exists(p):
+                return None
+            spec = importlib.util.spec_from_file_location('exportar_para_barragem', p)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+        except Exception:
+            return None
+
+    # ---- entrega para o gerador da classificacao -------------------------
+    def _entregar_classificacao(self, gpkg, mancha_name, cfg_path, hv_tif,
+                                id_bar, feedback):
+        """Entrega os 3 arquivos da rodada para a pasta do projeto QGIS (a
+        B<cod>_<Nome> que o gerador varre) e atualiza o documentos.yaml, reusando
+        os helpers do exportar_para_barragem.py. Os tres sao SEMPRE da mesma
+        rodada, porque saem juntos aqui. Nao-fatal."""
+        destino = QgsProject.instance().homePath()
+        if not destino or not os.path.isdir(destino):
+            feedback.pushWarning(
+                'Entrega para a classificacao pulada: o projeto do QGIS nao esta '
+                'salvo numa pasta. Salve o projeto na pasta da barragem '
+                '(B<cod>_<Nome>) e rode de novo, ou use o exportar_para_barragem.py.')
+            return
+        cod = id_bar.upper().lstrip('B')
+        kmz = os.path.join(destino, 'B%s_Mancha_MS2.kmz' % cod)
+        js_dst = os.path.join(destino, 'B%s_MS2.json' % cod)
+        hv_dst = os.path.join(destino, 'B%s_hv.tif' % cod)
+        helper = self._carregar_helper_export(gpkg)
+        try:
+            from pathlib import Path
+            # GUARDA: nunca sobrescrever uma mancha com anotacoes do analista
+            if helper is not None and os.path.exists(kmz):
+                try:
+                    n_anot = helper.anotacoes_no_kmz(Path(kmz))
+                except Exception:
+                    n_anot = 0
+                if n_anot:
+                    feedback.pushWarning(
+                        'Entrega PULADA: %s ja tem %d anotacao(oes) do analista - '
+                        'nao sobrescrevo para nao apagar esse trabalho. Reexporte com '
+                        'o exportar_para_barragem.py --descartar-anotacoes se for o caso.'
+                        % (os.path.basename(kmz), n_anot))
+                    return
+            self._exportar_kmz(gpkg, mancha_name, kmz)
+            shutil.copy2(cfg_path, js_dst)
+            if hv_tif and os.path.exists(hv_tif):
+                shutil.copy2(hv_tif, hv_dst)
+            feedback.pushInfo('Entregue para a classificacao em: %s' % destino)
+            feedback.pushInfo('  B%s_Mancha_MS2.kmz | B%s_MS2.json | B%s_hv.tif'
+                              % (cod, cod, cod))
+            # atualiza o documentos.yaml (aponta mancha/ms2_json/hv_tif; zera a conferencia)
+            if helper is not None:
+                try:
+                    for nota in helper.atualizar_manifesto(Path(destino), cod, Path(kmz)):
+                        feedback.pushInfo('  documentos.yaml: %s' % nota)
+                except Exception as e:
+                    feedback.pushWarning(
+                        'Entregou os arquivos, mas nao atualizou o documentos.yaml: %s. '
+                        'Rode o exportar_para_barragem.py ou ajuste o manifesto a mao.' % e)
+            else:
+                feedback.pushWarning(
+                    'documentos.yaml NAO atualizado: nao achei o exportar_para_barragem.py '
+                    'ao lado do MS2.gpkg. Se a barragem ja tem manifesto, aponte a mancha e '
+                    'zere a conferencia a mao (ou rode o exportar_para_barragem.py).')
+        except Exception as e:
+            feedback.pushWarning(
+                'Falha ao entregar para a classificacao: %s '
+                '(a rodada foi concluida normalmente; use o '
+                'exportar_para_barragem.py se precisar).' % e)
+
+    @staticmethod
+    def _exportar_kmz(gpkg, mancha_name, destino_kmz):
+        """Exporta a mancha para KMZ (um doc.kml zipado) em EPSG:4326, via OGR.
+        Carrega o rodada_id da mancha no <description> (que o geopandas expoe como
+        coluna) e tambem como campo rodada_id (ExtendedData). O driver KML padrao
+        do QGIS nao expoe atributos custom na releitura; por isso o OGR direto."""
+        from osgeo import ogr, osr
+        src = ogr.Open(gpkg)
+        if src is None:
+            raise RuntimeError('nao foi possivel abrir o GeoPackage')
+        sl = src.GetLayerByName(mancha_name)
+        if sl is None:
+            raise RuntimeError('camada da mancha invalida: %s' % mancha_name)
+        defn = sl.GetLayerDefn()
+        campos = [defn.GetFieldDefn(i).GetName() for i in range(defn.GetFieldCount())]
+        rid = None
+        f0 = sl.GetNextFeature()
+        if f0 is not None and 'rodada_id' in campos:
+            rid = f0.GetField('rodada_id')
+        sl.ResetReading()
+        ssrs = sl.GetSpatialRef()
+        tsrs = osr.SpatialReference(); tsrs.ImportFromEPSG(4326)
+        try:
+            tsrs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        except Exception:
+            pass
+        ct = osr.CoordinateTransformation(ssrs, tsrs) if ssrs else None
+        tmp = tempfile.mkdtemp(prefix='mancha_kmz_')
+        kml = os.path.join(tmp, 'doc.kml')
+        drv = ogr.GetDriverByName('LIBKML') or ogr.GetDriverByName('KML')
+        ds = drv.CreateDataSource(kml)
+        if ds is None:
+            raise RuntimeError('nao foi possivel criar o KML')
+        # a camada leva o nome do arquivo (nao 'doc') - e o que aparece no Google
+        # Earth e na escolha de camada da conferencia (igual ao exportar_para_barragem.py)
+        layer_name = os.path.splitext(os.path.basename(destino_kmz))[0]
+        tl = ds.CreateLayer(layer_name, srs=tsrs, geom_type=ogr.wkbMultiPolygon)
+        tl.CreateField(ogr.FieldDefn('description', ogr.OFTString))
+        tl.CreateField(ogr.FieldDefn('rodada_id', ogr.OFTString))
+        for feat in sl:
+            g = feat.GetGeometryRef()
+            if g is None:
+                continue
+            g = g.Clone()
+            if ct is not None:
+                g.Transform(ct)
+            nf = ogr.Feature(tl.GetLayerDefn())
+            nf.SetGeometry(g)
+            if rid:
+                nf.SetField('description', rid)
+                nf.SetField('rodada_id', rid)
+            tl.CreateFeature(nf)
+        ds = None
+        src = None
+        with zipfile.ZipFile(destino_kmz, 'w', zipfile.ZIP_DEFLATED) as z:
+            z.write(kml, 'doc.kml')
 
     def postProcessAlgorithm(self, context, feedback):
         try:

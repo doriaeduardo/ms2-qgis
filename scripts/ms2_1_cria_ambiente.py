@@ -105,9 +105,22 @@ def _cfg(chave):
         'anadem':       os.path.join(raiz, 'MDTs', 'Anadem-BR-removepits.tif'),
         'coeficientes': os.path.join(raiz, 'QGIS_MS2', 'coeficientes_ana2024.json'),
         'cadastro_csv': os.path.join(raiz, 'barragens_ana_processado.csv'),
-        'estilo_qml':   os.path.join(raiz, 'QGIS_MS2', 'MDT_estilo_ANA.qml'),
+        'estilo_qml':   _estilo_qml_padrao(raiz),
     }
     return c.get(chave) or padrao.get(chave)
+
+
+def _estilo_qml_padrao(raiz):
+    # O QML acompanha os scripts (mesma pasta do ms2_config.json); o antigo
+    # raiz/QGIS_MS2/ fica como alternativa para instalacoes anteriores.
+    import os
+    nome = 'MDT_estilo_ANA.qml'
+    candidatos = [os.path.join(os.path.dirname(_ms2_config_path()), nome),
+                  os.path.join(raiz, 'QGIS_MS2', nome)]
+    for p in candidatos:
+        if os.path.exists(p):
+            return p
+    return candidatos[0]
 
 
 # ANADEM padrao (usado quando o MDE/MDT nao e' informado) - via ms2_config.json.
@@ -716,9 +729,9 @@ class CriaAmbiente(QgsProcessingAlgorithm):
             else:
                 feedback.pushInfo('Planilha ja existe (mantida): %s' % destino)
         else:
-            feedback.pushWarning(
-                'Planilha modelo nao informada - copie manualmente o '
-                'MetodoSimplificadoANA_v2.1.xlsm para a pasta da barragem.')
+            # opcional: os Scripts 2 a 5 nao usam a planilha (so referencia)
+            feedback.pushInfo('Planilha de calculo (opcional) nao informada - '
+                              'nao e necessaria para os Scripts 2 a 5.')
 
         # 2b) MDE/MDT: usa o informado, ou recorta o ANADEM ao redor da barragem.
         # Se o Dmax for conhecido, garante que o recorte cubra toda a extensao.
@@ -861,7 +874,11 @@ class CriaAmbiente(QgsProcessingAlgorithm):
             proj = QgsProject.instance()
             proj.setCrs(crs_utm)                       # projeto no UTM da barragem
             canvas = iface.mapCanvas()
-            canvas.setCenter(QgsPointXY(pin_xy[0], pin_xy[1]))   # UTM direto
+            # Num projeto novo (QGIS recem-aberto) a extensao do mapa e' nula e
+            # setCenter sozinho nao tem efeito (mapa em branco, escala 1:1):
+            # define-se antes uma extensao valida em volta da barragem (UTM direto).
+            x, y = pin_xy
+            canvas.setExtent(QgsRectangle(x - 3000, y - 3000, x + 3000, y + 3000))
             canvas.zoomScale(30000)
             canvas.refresh()
             feedback.pushInfo('Projeto em %s e mapa centrado na barragem (UTM %.1f, %.1f).'

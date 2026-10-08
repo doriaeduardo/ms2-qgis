@@ -27,7 +27,10 @@ Não é preciso instalar Python nem bibliotecas: tudo o que os scripts usam
    - os 6 scripts: `ms2_1_cria_ambiente.py`, `ms2_2_rio_secoes.py`,
      `ms2_3_hidraulica.py`, `ms2_4_manchas.py`, `ms2_5_perigo.py` e
      `ms2_35_hidraulica_mancha_perigo.py` (o combinado 3-5);
-   - o arquivo `coeficientes_ana2024.json`.
+   - o arquivo `coeficientes_ana2024.json`;
+   - o arquivo `MDT_estilo_ANA.qml` (cores do terreno no padrão da ANA).
+
+   Ou seja: copie **tudo** o que está na pasta `scripts` do pacote.
 5. Reinicie o QGIS.
 
 Os scripts aparecem na **Caixa de Ferramentas de Processamento** (menu
@@ -44,9 +47,19 @@ Na **mesma pasta** `processing\scripts\`, crie um arquivo chamado
 { "raiz": "D:/GIS/Barragens" }
 ```
 
-- Use barras normais `/` (ou barras duplas `\\`).
-- O `coeficientes_ana2024.json` é encontrado **automaticamente** ao lado dos
-  scripts — não precisa configurar.
+- Use barras normais `/` (ou barras duplas `\\`) — **nunca** barra invertida
+  simples (`\`), que quebra o JSON.
+- O arquivo tem que se chamar exatamente `ms2_config.json`. Ligue **Exibir →
+  Extensões de nomes de arquivos** no Explorer para garantir que não ficou
+  `ms2_config.json.txt`.
+- ⚠️ **A pasta `raiz` precisa conter os seus dados:** a subpasta `MDTs\` (com o
+  ANADEM) e, para o preenchimento automático de volume/altura/coordenada pelo
+  código SNISB, o `barragens_ana_processado.csv`. Se o CSV não estiver em
+  `raiz\barragens_ana_processado.csv`, a busca automática falha **em silêncio**
+  (ver "Problemas comuns").
+- O `coeficientes_ana2024.json` e o `MDT_estilo_ANA.qml` são encontrados
+  **automaticamente** ao lado dos scripts — não precisa configurar. (Sem o
+  `.qml`, o terreno aparece com uma rampa de cores genérica; o resultado não muda.)
 - *(Opcional)* sobrescrever caminhos individuais, por exemplo o ANADEM num
   drive de rede:
 
@@ -95,6 +108,12 @@ Na Caixa de Ferramentas → **MS 2.0 ANA**, na ordem:
    vazão de pico Qmax (Froehlich), alcance Dmax e as camadas vazias de
    rio/seções no GeoPackage.
 
+   > **Dica:** se o código da barragem estiver no `barragens_ana_processado.csv`,
+   > deixe **coordenada, volume e altura em branco** — tudo é preenchido
+   > automaticamente pelo SNISB, e o **fuso UTM é deduzido da coordenada** (o
+   > campo *Fuso* é ignorado nesse caso). Confirme no log a linha
+   > `SNISB: <nome> | vol=... | lat=...` — ela indica que a busca funcionou.
+
 2. **Desenhe a geometria**
    Digitalize o **eixo do rio** (camada `<ID>_Rio`) e as **seções
    transversais** (camada `<ID>_SecTrans`) no GeoPackage.
@@ -133,3 +152,14 @@ velocidade, h×v, perigo) e no `MS2.gpkg` (mancha e perigo vetoriais).
   shapefile completo.
 - **Os algoritmos não aparecem** → confirme que os `.py` estão em
   `processing\scripts\` e reinicie o QGIS.
+- **"MDE nao pode ser carregado" / usa a "fonte ANADEM direta"** → o config tem
+  uma chave `anadem` (ou `mdt_dir`) apontando para um caminho inválido: arquivo
+  **sem a extensão `.tif`**, ou uma **pasta** em vez do arquivo. Corrija o
+  `anadem` para o caminho completo do `.tif` (com extensão), ou **remova** a
+  chave para usar o padrão `raiz\MDTs\Anadem-BR-removepits.tif`. Vale ligar as
+  extensões no Explorer para conferir o nome real do arquivo.
+- **Volume/coordenada não foram preenchidos sozinhos** → no log **não apareceu**
+  a linha `SNISB: <nome> | vol=... | lat=...`. Isso quer dizer que o CSV não foi
+  encontrado. Confirme que o `barragens_ana_processado.csv` está em `raiz\`
+  (a mesma `raiz` do config — **não** a *Pasta de Trabalho*). Alternativa:
+  preencher volume, altura e coordenada manualmente no Script 1.

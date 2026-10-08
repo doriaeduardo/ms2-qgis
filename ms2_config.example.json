@@ -1,4 +1,4 @@
 {
   "raiz": "D:/GIS/Barragens",
-  "_comentario": "Defina 'raiz' com a pasta onde estao MDTs/, QGIS_MS2/ e o CSV do SNISB. Opcional sobrescrever: mdt_dir, anadem, coeficientes, cadastro_csv, estilo_qml."
+  "_comentario": "Defina 'raiz' com a pasta que contem a subpasta MDTs/ (com o ANADEM) e o barragens_ana_processado.csv (para busca automatica pelo codigo SNISB). Use barras / e nunca barra invertida simples. Os scripts e o coeficientes_ana2024.json ficam na pasta processing/scripts/ do perfil, NAO na 'raiz'. Opcional sobrescrever caminhos: mdt_dir, anadem, coeficientes, cadastro_csv, estilo_qml."
 }
