@@ -8,3 +8,9 @@ ms2_config.json
 
 # pacotes/build
 *.zip
+
+# manutencao interna (nao publicar)
+CLAUDE.md
+_manutencao/_bak/
+_manutencao/PROMPT_CLAUDE_CODE.md
+MS2_ferramenta_v0.3/
