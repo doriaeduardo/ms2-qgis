@@ -7,13 +7,13 @@ hidrodinâmico (h×v)** por ruptura, seguindo o método oficial da ANA.
 ### ⬇️ [Baixe a última versão](https://github.com/doriaeduardo/ms2-qgis/releases/latest)
 
 Baixe o `MS2_ferramenta_vX.Y.zip` e siga o **[INSTALL.md](INSTALL.md)**.
-Requer apenas **QGIS 3.34+** e o MDT **ANADEM** — nenhuma biblioteca Python
+Requer apenas **QGIS 3.34+** ([qgis.org/download](https://qgis.org/download/)) e o MDT **ANADEM** — nenhuma biblioteca Python
 adicional (GDAL e numpy já vêm no QGIS).
 
 O ANADEM (versão "Remove Pits", `removepits.tif`, 67 GB) é baixado à parte, pelo
 link liberado pela ANA:
 https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif
-— use um gerenciador de downloads que retome após quedas (ex.: Free Download Manager).
+— use um gerenciador de downloads que retome após quedas (ex.: [Free Download Manager](https://www.freedownloadmanager.org/)).
 
 ## Validação
 

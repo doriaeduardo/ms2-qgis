@@ -11,8 +11,8 @@ const AZUL = '1F4E79', CINZA = '595959';
 
 // **negrito** dentro do texto
 function runs(texto, extra = {}) {
-  // URLs viram links clicaveis no PDF
-  return texto.split(/(\*\*[^*]+\*\*|https?:\/\/\S+)/).filter(Boolean).map(t =>
+  // URLs viram links clicaveis no PDF (pontuacao final, como "." ou ")", fica fora do link)
+  return texto.split(/(\*\*[^*]+\*\*|https?:\/\/\S*[^\s.,;:)])/).filter(Boolean).map(t =>
     t.startsWith('**') ? new TextRun({ text: t.slice(2, -2), bold: true, font: 'Calibri', size: 22, ...extra })
     : /^https?:/.test(t) ? new ExternalHyperlink({ link: t, children: [new TextRun({ text: t, style: 'Hyperlink', color: '0563C1', underline: {}, font: 'Calibri', size: 22 })] })
                        : new TextRun({ text: t, font: 'Calibri', size: 22, ...extra }));
@@ -36,17 +36,40 @@ function IMG(nome, larguraPol) {
 const NOTA = t => new Paragraph({ spacing: { before: 60, after: 140 }, indent: { left: 120 },
   border: { left: { style: BorderStyle.SINGLE, size: 18, color: AZUL, space: 8 } },
   shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'EAF1F8' }, children: runs(t) });
+// quadro de links: mesmo visual da NOTA; cada item = descricao + link na linha de baixo
+const LINKS = (titulo, itens) => [
+  new Paragraph({ spacing: { before: 60, after: 60 }, indent: { left: 120 }, keepNext: true, keepLines: true,
+    border: { left: { style: BorderStyle.SINGLE, size: 18, color: AZUL, space: 8 } },
+    shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'EAF1F8' }, children: runs(titulo) }),
+  ...itens.map(([desc, url], i) => new Paragraph({ spacing: { after: 60 },
+    indent: { left: 120 }, keepNext: i < itens.length - 1, keepLines: true,
+    border: { left: { style: BorderStyle.SINGLE, size: 18, color: AZUL, space: 8 } },
+    shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'EAF1F8' },
+    children: [...runs('• ' + desc), new TextRun({ break: 1 }), ...runs('   ' + url)] })),
+  // paragrafo vazio: sem ele o Word junta este quadro com uma NOTA logo abaixo (mesma borda)
+  new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: '', size: 8 })] }),
+];
 
 const c = [];
 c.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: 'Como gerar a mancha de inundação por ruptura de barragem', bold: true, size: 40, color: AZUL, font: 'Calibri' })] }));
 c.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: 'Pipeline MS 2.0 da ANA no QGIS — passo a passo com a barragem de exemplo (23508)', size: 24, color: CINZA, font: 'Calibri' })] }));
 
-c.push(P('**Você vai precisar de:** QGIS 3.34 ou mais novo, o terreno ANADEM (arquivo removepits.tif, 67 GB — o link de download está no passo 5) e o pacote MS2_ferramenta (arquivo .zip).'));
+c.push(P('**Você vai precisar de:** QGIS 3.34 ou mais novo (https://qgis.org/download/), o terreno ANADEM (arquivo removepits.tif, 67 GB — como baixar está no passo 5) e o pacote MS2_ferramenta (arquivo .zip). Os links estão todos no quadro abaixo.'));
+c.push(...LINKS('**Links que você vai precisar**', [
+  ['**Pacote MS2_ferramenta** (arquivo .zip, última versão) — os scripts, os dados de exemplo e este guia (pasta docs). Passo 1.',
+    'https://github.com/doriaeduardo/ms2-qgis/releases/latest'],
+  ['**Terreno ANADEM** — arquivo removepits.tif, 67 GB, liberado pela ANA. Passo 5.',
+    'https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif'],
+  ['**QGIS** — instale a versão LTR, 3.34 ou mais nova (gratuito).',
+    'https://qgis.org/download/'],
+  ['**Gerenciador de downloads** (opcional, só um exemplo) — o Free Download Manager, gratuito, retoma o download do ANADEM se a conexão cair. Passo 5.',
+    'https://www.freedownloadmanager.org/'],
+]));
 c.push(NOTA('**O ponto que mais trava a instalação é colocar cada arquivo na pasta certa.** São três pastas diferentes: (1) a **pasta de scripts do QGIS**, que recebe os scripts e o ms2_config.json; (2) a **pasta de dados**, que chamamos de **raiz** (neste guia, Documentos\\Barragens), com o ANADEM e o cadastro SNISB; e (3) a **Pasta de Trabalho**, onde ficam os resultados de cada barragem. O ms2_config.json é o arquivo que diz ao QGIS onde está a pasta de dados.'));
 
 // ---------------- Parte 1
 c.push(H('Parte 1 — Instalar a ferramenta (só na primeira vez)'));
-c.push(PK('1. Descompacte o MS2_ferramenta (.zip) numa pasta qualquer (por exemplo, Downloads). Dentro dele, a pasta **MS2_ferramenta\\scripts** tem 8 arquivos — são eles que vão para o QGIS.'));
+c.push(PK('1. Baixe o pacote MS2_ferramenta (arquivo MS2_ferramenta_vX.Y.zip, na seção Assets da página) em https://github.com/doriaeduardo/ms2-qgis/releases/latest e descompacte-o numa pasta qualquer (por exemplo, Downloads). Dentro dele, a pasta **MS2_ferramenta\\scripts** tem 8 arquivos — são eles que vão para o QGIS.'));
 c.push(IMG('f03b_scripts_pacote.jpg', 6.6)); c.push(CAP('A pasta scripts do pacote: 6 scripts (.py), o coeficientes_ana2024.json e o MDT_estilo_ANA.qml'));
 
 c.push(PK('2. No QGIS, abra a pasta do seu perfil: **Configurações → Perfis de Usuários → Abrir Pasta de Perfil Ativo**.'));
@@ -55,7 +78,7 @@ c.push(PK('3. O Explorador de Arquivos abre na pasta do perfil, que fica em C:\\
 c.push(IMG('f03a_pasta_perfil.jpg', 6.6)); c.push(CAP('A pasta do perfil, com o caminho completo na barra de endereço. Entre em processing → scripts'));
 c.push(P('4. Copie para dentro dessa pasta scripts **todos os 8 arquivos** da pasta scripts do pacote (passo 1): selecione tudo (Ctrl+A), copie (Ctrl+C) e cole (Ctrl+V).'));
 
-c.push(PK('5. Crie a **pasta de dados**: em **Documentos**, crie a pasta **Barragens** e, dentro dela, a pasta **MDTs**. Baixe o ANADEM pelo link liberado pela ANA — https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif — e coloque o arquivo **removepits.tif** dentro de MDTs, **sem mudar o nome**. São 67 GB: use um gerenciador de downloads que retome o download se a conexão cair (por exemplo, o Free Download Manager, gratuito). Copie também o arquivo **barragens_ana_processado.csv** (pasta dados do pacote) para dentro de **Barragens** — não dentro de MDTs. É ele que preenche sozinho o volume, a altura e a coordenada a partir do código da barragem.'));
+c.push(PK('5. Crie a **pasta de dados**: em **Documentos**, crie a pasta **Barragens** e, dentro dela, a pasta **MDTs**. Baixe o ANADEM pelo link liberado pela ANA — https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif — e coloque o arquivo **removepits.tif** dentro de MDTs, **sem mudar o nome**. São 67 GB: use um gerenciador de downloads que retome o download se a conexão cair (por exemplo, o Free Download Manager, gratuito — o link está no quadro do início do guia). Copie também o arquivo **barragens_ana_processado.csv** (pasta dados do pacote) para dentro de **Barragens** — não dentro de MDTs. É ele que preenche sozinho o volume, a altura e a coordenada a partir do código da barragem.'));
 c.push(IMG('f04a_pasta_barragens.jpg', 6.6)); c.push(CAP('Documentos\\Barragens: a pasta MDTs e o barragens_ana_processado.csv, lado a lado'));
 c.push(IMG('f04b_pasta_mdts.jpg', 6.6)); c.push(CAP('Documentos\\Barragens\\MDTs: o ANADEM (removepits.tif)'));
 

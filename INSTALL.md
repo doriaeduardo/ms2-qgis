@@ -3,6 +3,9 @@
 Guia para instalar e rodar o pipeline de mancha de inundação e perigo hidrodinâmico
 por ruptura de barragem (Método Simplificado 2.0 da ANA) em uma máquina nova.
 
+Baixe o pacote (`MS2_ferramenta_vX.Y.zip`, última versão) em:
+https://github.com/doriaeduardo/ms2-qgis/releases/latest
+
 Não é preciso instalar Python nem bibliotecas: tudo o que os scripts usam
 (GDAL, numpy) já vem dentro do QGIS.
 
@@ -10,13 +13,15 @@ Não é preciso instalar Python nem bibliotecas: tudo o que os scripts usam
 
 ## 1. Requisitos
 
-- **QGIS LTR** — versão 3.34 ou superior (testado no 3.44). Grátis: https://qgis.org
+- **QGIS LTR** — versão 3.34 ou superior (testado no 3.44). Grátis:
+  https://qgis.org/download/
 - **ANADEM** (versão hidrologicamente consistente, "Remove Pits") — Modelo
   Digital de Elevação de 30 m, arquivo `removepits.tif` (**67 GB**). Download
   liberado pela ANA:
   https://metadados.snirh.gov.br/files/5fd2b554-8576-4f14-b387-96036c69a08b/removepits.tif
   Pelo tamanho, use um gerenciador de downloads que retome após quedas de
-  conexão (por exemplo, o Free Download Manager, gratuito). O arquivo cobre a
+  conexão (por exemplo, o Free Download Manager, gratuito:
+  https://www.freedownloadmanager.org/). O arquivo cobre a
   América do Sul e vem na projeção Albers (EPSG:10857); não é preciso
   reprojetar — o Script 1 recorta e reprojeta só a área de cada barragem.
 - *(Opcional)* `barragens_ana_processado.csv` — cadastro SNISB, para buscar
